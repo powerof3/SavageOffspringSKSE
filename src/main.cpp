@@ -7,13 +7,13 @@ namespace NotAChild
 		//FF 90 F0 02 00 00	- call qword ptr [rax+2F0h]
 
 		std::array targets{
-			std::make_pair(36534, 0x161),  // npcAgression
-			std::make_pair(39627, 0x82),   // targetLockHUD
-			std::make_pair(39727, 0xB2),   // targetLockHUD2
-			std::make_pair(39725, 0x31),   // targetLockActor
-			std::make_pair(45660, 0xA8),   // lowCombatSelector
-			std::make_pair(45922, 0x316),  // encounterZoneTargetResist
-			std::make_pair(45922, 0x632),  // encounterZoneTargetResist2
+			std::make_pair(37534, 0x165),  // npcAgression
+			std::make_pair(40713, 0x82),   // targetLockHUD
+			std::make_pair(40834, 0xBE),   // targetLockHUD2
+			std::make_pair(40828, 0x31),   // targetLockActor
+			std::make_pair(46957, 0x8D),   // lowCombatSelector
+			std::make_pair(47196, 0x5C),   // encounterZoneTargetResist (function got un-inlined, previously this was part of 47195)
+			std::make_pair(47195, 0x578),  // encounterZoneTargetResist2
 		};
 
 		struct Patch : Xbyak::CodeGenerator
@@ -44,8 +44,8 @@ namespace NotChildRace
 		//text : 0000000140628B23 jz short loc_140628B55
 
 		std::array targets{
-			std::make_tuple(37672, 0x571, 0x585),  // addTargetToCombatGroup
-			std::make_tuple(37608, 0x2DD, 0x2F1),  // createCombatController
+			std::make_tuple(38626, 0x58F, 0x5A3),  // addTargetToCombatGroup
+			std::make_tuple(38561, 0x2D7, 0x2EB),  // createCombatController
 		};
 
 		for (const auto& [id, start, end] : targets) {
@@ -114,10 +114,10 @@ namespace NoOverridePackage
 
 		void Install()
 		{
-			REL::Relocation<std::uintptr_t> combat_override_interupt{ REL::ID(24169) };
+			REL::Relocation<std::uintptr_t> combat_override_interupt{ REL::ID(24673) };
 			stl::write_thunk_call<FindEnterCombatOverrideInteruptPackage>(combat_override_interupt.address() + 0x24);
 
-			REL::Relocation<std::uintptr_t> spectator_override_interupt{ REL::ID(24166) };
+			REL::Relocation<std::uintptr_t> spectator_override_interupt{ REL::ID(24670) };
 			stl::write_thunk_call<FindSpectatorOverrideInteruptPackage>(spectator_override_interupt.address() + 0x24);
 		}
 	}
@@ -130,15 +130,25 @@ void OnInit(SKSE::MessagingInterface::Message* a_msg)
 	}
 }
 
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
+extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
+	SKSE::PluginVersionData v;
+	v.PluginVersion(Version::MAJOR);
+	v.PluginName("Savage Offspring SKSE");
+	v.AuthorName("powerofthree");
+	v.UsesAddressLibrary(true);
+	v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
+
+	return v;
+}();
+
+void InitializeLog()
 {
 	auto path = logger::log_directory();
 	if (!path) {
-		return false;
+		stl::report_and_fail("Failed to find standard logging directory"sv);
 	}
 
-	*path /= Version::PROJECT;
-	*path += ".log"sv;
+	*path /= fmt::format(FMT_STRING("{}.log"), Version::PROJECT);
 	auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
 
 	auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
@@ -150,27 +160,12 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 	spdlog::set_pattern("[%H:%M:%S] %v"s);
 
 	logger::info(FMT_STRING("{} v{}"), Version::PROJECT, Version::NAME);
-
-	a_info->infoVersion = SKSE::PluginInfo::kVersion;
-	a_info->name = "Savage Offspring SKSE";
-	a_info->version = Version::MAJOR;
-
-	if (a_skse->IsEditor()) {
-		logger::critical("Loaded in editor, marking as incompatible"sv);
-		return false;
-	}
-
-	const auto ver = a_skse->RuntimeVersion();
-	if (ver < SKSE::RUNTIME_1_5_39) {
-		logger::critical(FMT_STRING("Unsupported runtime version {}"), ver.string());
-		return false;
-	}
-
-	return true;
 }
 
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
+	InitializeLog();
+
 	logger::info("loaded");
 
 	SKSE::Init(a_skse);
