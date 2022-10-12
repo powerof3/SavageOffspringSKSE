@@ -21,6 +21,8 @@ public:
 		detail::get_value(ini, aggression, "AI Settings", "Aggression", ";Set base aggression of all child NPCs.\n;0 - Unaggressive, 1 - Aggressive, 2 - Very Aggressive, 3 - Frenzied.");
 		detail::get_value(ini, confidence, "AI Settings", "Confidence", ";Set base confidence of all child NPCs.\n;0 - Cowardly, 1 - Cautious, 2 - Average, 3 - Brave, 4 - Foolhardy.");
 		detail::get_value(ini, assistance, "AI Settings", "Assistance", ";Set base assistance of all child NPCs.\n;0 - Helps Nobody, 1 - Helps Allies, 2 - Helps Friends and Allies.");
+
+		(void)ini.SaveFile(path);
 	}
 
 	std::uint32_t aggression{ 1 };
